@@ -135,9 +135,28 @@ namespace OSharp.Entity
             }
 
             //开启或使用现有事务
+#if NET5_0
             await BeginOrUseTransactionAsync(cancellationToken);
+#else
+            BeginOrUseTransaction();
+#endif
 
-            int count = await base.SaveChangesAsync(cancellationToken);
+            int count;
+            try
+            {
+                count = await base.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+                while (ex.InnerException != null)
+                {
+                    msg += $"---{ex.InnerException.Message}";
+                    ex = ex.InnerException;
+                }
+                Logger.LogDebug($"SaveChangesAsync 引发异常：{msg}");
+                throw;
+            }
             if (count > 0 && auditEntities?.Count > 0)
             {
                 AuditEntityEventData eventData = new AuditEntityEventData(auditEntities);
@@ -164,6 +183,8 @@ namespace OSharp.Entity
             UnitOfWork.BeginOrUseTransaction();
         }
 
+#if NET5_0
+        
         /// <summary>
         /// 异步开启或使用现有事务
         /// </summary>
@@ -176,7 +197,8 @@ namespace OSharp.Entity
 
             await UnitOfWork.BeginOrUseTransactionAsync(cancellationToken);
         }
-
+        
+#endif
         /// <summary>
         /// 创建上下文数据模型时，对各个实体类的数据库映射细节进行配置
         /// </summary>
