@@ -171,6 +171,7 @@ namespace OSharp.Hosting.Apis.Controllers
                     Account = dto.Account,
                     Password = dto.Password,
                     ClientType = dto.ClientType,
+                    IsToken = true,
                     Ip = HttpContext.GetClientIp(),
                     UserAgent = Request.Headers["User-Agent"].FirstOrDefault()
                 };
@@ -201,7 +202,7 @@ namespace OSharp.Hosting.Apis.Controllers
 
             return new AjaxResult("GrantType错误", AjaxResultType.Error);
         }
-
+        
         [HttpPost]
         [ModuleInfo]
         [Description("用户登录")]
@@ -252,7 +253,9 @@ namespace OSharp.Hosting.Apis.Controllers
             }
 
             int userId = User.Identity.GetUserId<int>();
-            OperationResult result = await _identityContract.Logout(userId);
+            bool isToken = Request.Headers["Authorization"].Any(m => m.StartsWith("Bearer"));
+
+            OperationResult result = await _identityContract.Logout(userId, isToken);
             return result.ToAjaxResult();
         }
 
